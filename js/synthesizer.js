@@ -1,50 +1,74 @@
 'use strict';
 
 /**
+ * Duration (in seconds) of the silence gap inserted between adjacent
+ * synthesized phrase units.  Change this value to experiment with how
+ * the gap length affects the naturalness of synthesized speech.
+ */
+const UNIT_GAP_SECONDS = 0.08; // 80 ms
+
+/**
  * synthesizer.js
  *
- * Implements the "unit selection" speech synthesis algorithm:
+ * Unit-selection speech synthesis using the user's own voice recordings.
  *
- *  1. The user's typed text is normalised (lower-cased, numbers expanded
- *     to words, punctuation stripped).
- *  2. A greedy longest-match search finds which recorded corpus units
- *     best cover the text from left to right.
- *  3. The matching audio blobs are loaded from storage and decoded into
- *     PCM audio buffers using the Web Audio API.
- *  4. The buffers are concatenated (with a short silence gap between
- *     units to mimic natural phrasing) and played back.
+ * PIPELINE
+ * ─────────
+ * 1. NORMALISE   — lower-case the typed text, expand numbers to words.
+ * 2. SELECT      — greedy longest-match finds which corpus units best cover
+ *                  the text, matching against CORPUS.unitDefs.
+ * 3. LOAD        — for each selected unit, find which sentence recording
+ *                  contains it and call the Segmenter to extract the right
+ *                  audio slice in the user's voice.
+ * 4. CONCATENATE — join the slices with an 80 ms silence gap.
+ * 5. PLAY        — send the combined buffer to the Web Audio API output.
  *
- * The visualisation data returned by synthesize() allows the UI to
- * highlight exactly which units were used and which words were skipped
- * because no matching unit was available.
+ * HOW STEP 3 WORKS
+ * ─────────────────
+ * The corpus defines 15 sentences, each with a "segments" array listing
+ * the phrase units it contains.  When synthesis needs "to new york", it
+ * searches the corpus for any sentence that has a segment with unitId
+ * "dest-newyork", loads that sentence's recording, and asks the Segmenter
+ * to cut out the slice corresponding to "to new york".
+ *
+ * In a professional system, the selection algorithm would choose the
+ * BEST matching segment by comparing acoustic features (MFCCs, pitch,
+ * duration) at the join boundary.  We simplify this by always using the
+ * first available sentence.
  */
 
 class Synthesizer {
-  /**
-   * @param {Storage}  storage  - The storage instance for loading recordings.
-   * @param {object}   corpus   - The CORPUS object from corpus.js.
-   */
-  constructor(storage, corpus) {
-    this.storage = storage;
-    this.corpus = corpus;
-    /** @type {AudioContext|null} */
-    this._audioContext = null;
-    /** @type {AudioBufferSourceNode|null} */
+  constructor(storage, corpus, segmenter) {
+    this.storage   = storage;
+    this.corpus    = corpus;
+    this.segmenter = segmenter;
+
+    this._audioContext  = null;
     this._currentSource = null;
+
+    // Map: unitId -> [sentenceId, ...] built at start-up
+    this._unitToSentences = this._buildUnitIndex();
+  }
+
+  // ── Index ─────────────────────────────────────────────────────────
+
+  _buildUnitIndex() {
+    const map = new Map();
+    for (const sentence of this.corpus.sentences) {
+      for (const seg of sentence.segments) {
+        if (!map.has(seg.unitId)) map.set(seg.unitId, []);
+        map.get(seg.unitId).push(sentence.id);
+      }
+    }
+    return map;
   }
 
   // ── Audio context ─────────────────────────────────────────────────
 
-  /**
-   * Returns (or lazily creates) the shared AudioContext.
-   * AudioContext must be created after a user gesture on some browsers.
-   */
   _getAudioContext() {
     if (!this._audioContext || this._audioContext.state === 'closed') {
-      this._audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
+      this._audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
-    // Resume in case it was suspended (autoplay policy)
     if (this._audioContext.state === 'suspended') {
       this._audioContext.resume();
     }
@@ -53,85 +77,46 @@ class Synthesizer {
 
   // ── Text normalisation ────────────────────────────────────────────
 
-  /**
-   * Converts the user's typed text into a normalised form that can be
-   * matched against corpus unit texts (which are all lower-case words).
-   *
-   * Steps performed:
-   *   1. Lower-case everything.
-   *   2. Expand flight numbers (e.g. "101" → "one zero one").
-   *   3. Expand gate numbers (e.g. "gate 5" → "gate five").
-   *   4. Expand time delays ("30 minutes" → "thirty minutes").
-   *   5. Strip leftover punctuation.
-   *
-   * @param {string} text
-   * @returns {string}
-   */
   normalizeText(text) {
     let t = text.toLowerCase();
 
-    // Expand flight numbers written as digits, e.g. "flight 101"
-    t = t.replace(/\bflight\s+(\d{3})\b/g, (_m, num) => {
-      return 'flight ' + num.split('').map(Synthesizer._digitWord).join(' ');
+    // Flight numbers: "flight 101" → "flight one zero one"
+    t = t.replace(/\bflight\s+(\d{3})\b/g, (_m, num) =>
+      'flight ' + num.split('').map(Synthesizer._digitWord).join(' ')
+    );
+
+    // Gate numbers: "gate 5" → "gate five"
+    t = t.replace(/\bgate\s+(\d{1,2})\b/g, (_m, n) =>
+      'gate ' + Synthesizer._numWord(parseInt(n, 10))
+    );
+
+    // Delay: "30 minutes" → "thirty minutes"
+    t = t.replace(/\b(\d+)\s+minutes?\b/g, (_m, n) =>
+      Synthesizer._numWord(parseInt(n, 10)) + ' minutes'
+    );
+
+    // Delay: "1 hour" / "2 hours"
+    t = t.replace(/\b(\d+)\s+hours?\b/g, (_m, n) => {
+      const num = parseInt(n, 10);
+      return Synthesizer._numWord(num) + (num === 1 ? ' hour' : ' hours');
     });
 
-    // Expand gate numbers, e.g. "gate 5" → "gate five"
-    t = t.replace(/\bgate\s+(\d{1,2})\b/g, (_m, num) => {
-      return 'gate ' + Synthesizer._smallNumberWord(parseInt(num, 10));
-    });
-
-    // Expand delay durations: "30 minutes" → "thirty minutes"
-    t = t.replace(/\b(\d+)\s+minutes?\b/g, (_m, num) => {
-      return Synthesizer._smallNumberWord(parseInt(num, 10)) + ' minutes';
-    });
-
-    // Expand delay hours: "1 hour" → "one hour"
-    t = t.replace(/\b(\d+)\s+hours?\b/g, (_m, num) => {
-      const n = parseInt(num, 10);
-      return (
-        Synthesizer._smallNumberWord(n) + (n === 1 ? ' hour' : ' hours')
-      );
-    });
-
-    // Strip remaining punctuation (periods, commas, exclamation marks…)
-    t = t.replace(/[.,!?;:'"()\-]/g, ' ');
-
-    // Collapse multiple spaces
-    t = t.replace(/\s+/g, ' ').trim();
-
-    return t;
+    // Strip punctuation, collapse spaces
+    return t.replace(/[.,!?;:'"()\-]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  /**
-   * Returns the word for a single digit 0–9.
-   * @param {string} digit
-   * @returns {string}
-   */
-  static _digitWord(digit) {
-    return [
-      'zero', 'one', 'two', 'three', 'four',
-      'five', 'six', 'seven', 'eight', 'nine',
-    ][parseInt(digit, 10)] || digit;
+  static _digitWord(d) {
+    const words = ['zero','one','two','three','four','five','six','seven','eight','nine'];
+    const idx = parseInt(d, 10);
+    return (!isNaN(idx) && idx >= 0 && idx <= 9) ? words[idx] : d;
   }
 
-  /**
-   * Returns the word for small numbers (0–99).
-   * Used for gate numbers and delay minutes/hours.
-   * @param {number} n
-   * @returns {string}
-   */
-  static _smallNumberWord(n) {
-    const ones = [
-      'zero', 'one', 'two', 'three', 'four', 'five',
-      'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
-      'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
-      'seventeen', 'eighteen', 'nineteen',
-    ];
-    const tens = [
-      '', '', 'twenty', 'thirty', 'forty', 'fifty',
-      'sixty', 'seventy', 'eighty', 'ninety',
-    ];
-
+  static _numWord(n) {
+    const ones = ['zero','one','two','three','four','five','six','seven',
+                  'eight','nine','ten','eleven','twelve','thirteen','fourteen',
+                  'fifteen','sixteen','seventeen','eighteen','nineteen'];
+    const tens = ['','','twenty','thirty','forty','fifty',
+                  'sixty','seventy','eighty','ninety'];
     if (n < 20) return ones[n] || String(n);
     const t = tens[Math.floor(n / 10)];
     const o = ones[n % 10];
@@ -141,29 +126,17 @@ class Synthesizer {
   // ── Unit selection ────────────────────────────────────────────────
 
   /**
-   * Performs a greedy longest-match search over the normalised text.
-   *
-   * This is a simplified version of the unit selection algorithm used
-   * in real speech synthesis. A full system would also consider:
-   *   - acoustic similarity (target cost)
-   *   - how smoothly units join together (join / concatenation cost)
-   *   - prosodic context (pitch, duration)
-   *
-   * Our version finds the longest recorded corpus unit that matches the
-   * start of the remaining text, takes it, and repeats. When no match
-   * is found, the current word is marked as "unmatched" and skipped.
-   *
-   * @param {string}   normalizedText - Output of normalizeText().
-   * @param {Set<string>} recordedIds - Set of unit IDs that have been recorded.
-   * @returns {Array<{type:'match'|'unmatched', unit?: object, word?: string}>}
+   * Greedy longest-match: scans left-to-right, always taking the longest
+   * matching unit that has at least one available recording.
    */
-  findBestSequence(normalizedText, recordedIds) {
-    // Only consider units that have been recorded
-    const available = this.corpus.units
-      .filter((u) => recordedIds.has(u.id))
-      // Sort longest-first so we prefer longer units (e.g. "attention
-      // all passengers" over just "attention")
-      .sort((a, b) => b.text.length - a.text.length);
+  selectUnits(normalizedText, recordedSentenceIds) {
+    const available = Object.entries(this.corpus.unitDefs)
+      .filter(([unitId]) =>
+        (this._unitToSentences.get(unitId) || [])
+          .some((sId) => recordedSentenceIds.has(sId))
+      )
+      .map(([unitId, text]) => ({ unitId, text }))
+      .sort((a, b) => b.text.length - a.text.length); // longest first
 
     const result = [];
     let remaining = normalizedText.trim();
@@ -172,11 +145,10 @@ class Synthesizer {
       remaining = remaining.trim();
       if (!remaining) break;
 
-      // Try to find the longest unit that starts here
       let matched = false;
       for (const unit of available) {
         if (remaining === unit.text || remaining.startsWith(unit.text + ' ')) {
-          result.push({ type: 'match', unit });
+          result.push({ type: 'match', unitId: unit.unitId, unitText: unit.text });
           remaining = remaining.slice(unit.text.length).trim();
           matched = true;
           break;
@@ -184,10 +156,8 @@ class Synthesizer {
       }
 
       if (!matched) {
-        // Skip the first word; mark it as unmatched for the UI
         const spaceIdx = remaining.indexOf(' ');
-        const word =
-          spaceIdx === -1 ? remaining : remaining.slice(0, spaceIdx);
+        const word = spaceIdx === -1 ? remaining : remaining.slice(0, spaceIdx);
         result.push({ type: 'unmatched', word });
         remaining = spaceIdx === -1 ? '' : remaining.slice(spaceIdx + 1);
       }
@@ -196,165 +166,125 @@ class Synthesizer {
     return result;
   }
 
-  // ── Audio loading & concatenation ─────────────────────────────────
+  // ── Audio extraction ──────────────────────────────────────────────
 
   /**
-   * Loads an audio blob from storage and decodes it into a Web Audio
-   * API AudioBuffer (raw PCM samples).
-   *
-   * @param {string}       unitId
-   * @param {AudioContext} audioCtx
-   * @returns {Promise<AudioBuffer>}
+   * Loads the recording of the sentence that contains this unit, then
+   * uses the Segmenter to extract the phrase slice for this unit.
    */
-  async _loadBuffer(unitId, audioCtx) {
-    const blob = await this.storage.loadRecording(unitId);
-    if (!blob) throw new Error(`No recording found for unit "${unitId}".`);
-    const arrayBuffer = await blob.arrayBuffer();
-    return audioCtx.decodeAudioData(arrayBuffer);
-  }
+  async _extractUnitAudio(unitId, recordedSentenceIds, audioCtx) {
+    const sentenceIds = this._unitToSentences.get(unitId) || [];
+    const available   = sentenceIds.filter((sId) => recordedSentenceIds.has(sId));
 
-  /**
-   * Concatenates multiple AudioBuffers into a single buffer, inserting
-   * a short silence gap (80 ms) between each unit to prevent abrupt
-   * joins.  All buffers are mixed down to mono.
-   *
-   * @param {AudioBuffer[]} buffers
-   * @param {AudioContext}  audioCtx
-   * @returns {AudioBuffer}
-   */
-  _concatenate(buffers, audioCtx) {
-    const sampleRate = audioCtx.sampleRate;
-    const gapSamples = Math.floor(0.08 * sampleRate); // 80 ms gap
-    const totalLength =
-      buffers.reduce((sum, b) => sum + b.length, 0) +
-      gapSamples * (buffers.length - 1);
-
-    const output = audioCtx.createBuffer(1, totalLength, sampleRate);
-    const out = output.getChannelData(0);
-
-    let offset = 0;
-    for (let i = 0; i < buffers.length; i++) {
-      const buf = buffers[i];
-      // Mix down to mono: average all channels
-      const mono = new Float32Array(buf.length);
-      for (let ch = 0; ch < buf.numberOfChannels; ch++) {
-        const chData = buf.getChannelData(ch);
-        for (let s = 0; s < chData.length; s++) {
-          mono[s] += chData[s] / buf.numberOfChannels;
-        }
-      }
-      out.set(mono, offset);
-      offset += buf.length;
-      if (i < buffers.length - 1) {
-        offset += gapSamples; // silence gap is already zero-filled
-      }
+    if (available.length === 0) {
+      throw new Error(`No recording found for unit "${unitId}".`);
     }
 
-    return output;
+    const sentenceId  = available[0];
+    const sentence    = this.corpus.sentences.find((s) => s.id === sentenceId);
+    const blob        = await this.storage.loadRecording(sentenceId);
+    if (!blob) throw new Error(`Sentence "${sentenceId}" not in storage.`);
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+    const segments = this.segmenter.segment(audioBuffer, sentence, audioCtx);
+    const slice    = segments.find((s) => s.unitId === unitId);
+    if (!slice) throw new Error(`Could not extract "${unitId}" from "${sentenceId}".`);
+
+    return slice.buffer;
   }
 
+  // ── Concatenation ─────────────────────────────────────────────────
+
   /**
-   * Plays an AudioBuffer through the default audio output.
-   * Returns a promise that resolves when playback finishes.
-   *
-   * @param {AudioBuffer}  buffer
-   * @param {AudioContext} audioCtx
-   * @returns {Promise<void>}
+   * Joins multiple mono AudioBuffers with a silence gap (UNIT_GAP_SECONDS) between each.
    */
+  _concatenate(buffers, audioCtx) {
+    const sr         = audioCtx.sampleRate;
+    const gapSamples = Math.floor(UNIT_GAP_SECONDS * sr);
+    const totalLen   = buffers.reduce((s, b) => s + b.length, 0) +
+                       gapSamples * (buffers.length - 1);
+
+    const out     = audioCtx.createBuffer(1, Math.max(1, totalLen), sr);
+    const outData = out.getChannelData(0);
+    let offset    = 0;
+
+    for (let i = 0; i < buffers.length; i++) {
+      outData.set(buffers[i].getChannelData(0), offset);
+      offset += buffers[i].length;
+      if (i < buffers.length - 1) offset += gapSamples;
+    }
+
+    return out;
+  }
+
+  // ── Playback ──────────────────────────────────────────────────────
+
   _play(buffer, audioCtx) {
     return new Promise((resolve) => {
       if (this._currentSource) {
-        try { this._currentSource.stop(); } catch (_) { /* already stopped */ }
+        try { this._currentSource.stop(); } catch (_) {}
       }
-      const source = audioCtx.createBufferSource();
+      const source  = audioCtx.createBufferSource();
       source.buffer = buffer;
       source.connect(audioCtx.destination);
-      source.onended = () => {
-        this._currentSource = null;
-        resolve();
-      };
+      source.onended = () => { this._currentSource = null; resolve(); };
       source.start();
       this._currentSource = source;
     });
   }
 
-  /**
-   * Stops any currently playing synthesis output.
-   */
   stop() {
     if (this._currentSource) {
-      try { this._currentSource.stop(); } catch (_) { /* already stopped */ }
+      try { this._currentSource.stop(); } catch (_) {}
       this._currentSource = null;
     }
   }
 
   // ── Main entry point ──────────────────────────────────────────────
 
-  /**
-   * The full synthesis pipeline.
-   *
-   * 1. Normalise the input text.
-   * 2. Find the best sequence of recorded units.
-   * 3. Load & concatenate the audio.
-   * 4. Play the result.
-   *
-   * @param {string}      text       - The user's typed announcement.
-   * @param {Set<string>} recordedIds - Set of unit IDs that are recorded.
-   * @param {Function}    onProgress  - Optional callback(message: string).
-   * @returns {Promise<{
-   *   normalizedText: string,
-   *   sequence: Array,
-   *   matchCount: number,
-   *   unmatchedWords: string[]
-   * }>}
-   */
-  async synthesize(text, recordedIds, onProgress) {
+  async synthesize(text, recordedSentenceIds, onProgress) {
     const emit = (msg) => { if (onProgress) onProgress(msg); };
 
     emit('Analysing your text\u2026');
     const normalizedText = this.normalizeText(text);
 
     if (!normalizedText) {
-      throw new Error('Please type something before synthesizing.');
+      throw new Error('Please type an announcement before clicking Synthesize.');
     }
 
     emit('Selecting speech units\u2026');
-    const sequence = this.findBestSequence(normalizedText, recordedIds);
+    const sequence = this.selectUnits(normalizedText, recordedSentenceIds);
 
-    const matched = sequence.filter((s) => s.type === 'match');
-    const unmatched = sequence
-      .filter((s) => s.type === 'unmatched')
-      .map((s) => s.word);
+    const matched   = sequence.filter((s) => s.type === 'match');
+    const unmatched = sequence.filter((s) => s.type === 'unmatched').map((s) => s.word);
 
     if (matched.length === 0) {
       throw new Error(
-        'None of the words in your text match any of your recordings. ' +
-        'Try recording more phrases or using the example announcements.'
+        'None of the words in your text match any recorded phrases. ' +
+        'Record more sentences, or try one of the example announcements.'
       );
     }
 
-    emit(`Loading ${matched.length} recording${matched.length > 1 ? 's' : ''}\u2026`);
+    emit(`Extracting ${matched.length} phrase${matched.length > 1 ? 's' : ''} from your recordings\u2026`);
     const audioCtx = this._getAudioContext();
+    const buffers  = [];
 
-    const buffers = [];
     for (const item of matched) {
-      const buf = await this._loadBuffer(item.unit.id, audioCtx);
+      const buf = await this._extractUnitAudio(item.unitId, recordedSentenceIds, audioCtx);
       buffers.push(buf);
     }
 
-    emit('Combining audio\u2026');
-    const combined =
-      buffers.length === 1 ? buffers[0] : this._concatenate(buffers, audioCtx);
+    emit('Combining phrases in your voice\u2026');
+    const combined = buffers.length === 1
+      ? buffers[0]
+      : this._concatenate(buffers, audioCtx);
 
     emit('Playing\u2026');
     await this._play(combined, audioCtx);
 
-    return {
-      normalizedText,
-      sequence,
-      matchCount: matched.length,
-      unmatchedWords: unmatched,
-    };
+    return { normalizedText, sequence, matchCount: matched.length, unmatchedWords: unmatched };
   }
 }
 

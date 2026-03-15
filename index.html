@@ -5,24 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Airport Announcement Voice Builder – Learn Speech Synthesis</title>
   <meta name="description"
-        content="A hands-on tool for learning how limited-domain speech synthesis works. Record your voice, build a voice database, and synthesize new airport announcements." />
+        content="Record full airport announcement sentences, build a personal voice database, and synthesize new announcements in your own voice using unit-selection speech synthesis." />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
 
-  <!-- Skip navigation link (WCAG 2.4.1) -->
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
-  <!-- Global error banner (hidden unless JS surfaces an error) -->
   <div id="global-error" role="alert" hidden></div>
 
-  <!-- ── Site header ──────────────────────────────────────────────── -->
+  <!-- ── Header ──────────────────────────────────────────────────── -->
   <header class="site-header" role="banner">
     <h1>Airport Announcement Voice Builder</h1>
-    <p class="tagline">Learn how computers learn to speak — by building your own voice</p>
+    <p class="tagline">Record sentences in your voice — hear them recombined into new announcements</p>
   </header>
 
-  <!-- ── Step progress indicator ──────────────────────────────────── -->
+  <!-- ── Step progress nav ────────────────────────────────────────── -->
   <nav class="step-progress" aria-label="Progress through the five steps">
     <ol class="step-list" role="list">
       <li class="step-item" id="step-nav-0" aria-current="step">
@@ -48,123 +46,109 @@
     </ol>
   </nav>
 
-  <!-- ── Main content ──────────────────────────────────────────────── -->
   <main id="main-content">
 
     <!-- ══════════════════════════════════════════════════════════════
          STEP 0 – INTRODUCTION
-         ══════════════════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════════ -->
     <section id="step-0" class="step-panel" aria-labelledby="step-0-heading">
 
       <h2 id="step-0-heading" class="step-heading">Welcome!</h2>
       <p class="step-subtitle">
-        This tool teaches you how computers learn to speak using a technique called
-        <strong>limited-domain speech synthesis</strong>.
+        Build a working speech synthesis system — in your own voice — right in
+        your browser. No programming required.
       </p>
 
       <div class="explanation">
-        <h3>What is this tool?</h3>
+        <h3>What will you do?</h3>
         <p>
-          You are going to build a working <em>computer voice</em> — one that sounds
-          like <em>you</em>. By the end, you will be able to type a new airport
-          announcement and hear it read back in your own voice.
-        </p>
-        <p>
-          You do not need any programming experience. Everything happens right here in
-          your browser.  Your recordings are stored <strong>only on your device</strong>
-          and are never sent to the internet.
+          You are going to record <strong>15 complete airport announcement
+          sentences</strong>.  The system then automatically splits each
+          recording into shorter phrase-level building blocks — exactly the
+          way professional voice-building tools work.  Finally, you can type
+          any new announcement and hear it played back in <em>your</em> voice.
         </p>
       </div>
 
       <div class="explanation">
-        <h3>What is "limited-domain speech synthesis"?</h3>
+        <h3>Why record full sentences — not individual words?</h3>
         <p>
-          Speech synthesis means making a computer talk in a human-sounding voice.
-          A <strong>limited-domain</strong> system is one that can only talk about one
-          specific topic — in our case, airport announcements.
+          Human speech sounds natural only when words are spoken in
+          <strong>context</strong>.  The same word sounds different at the
+          start of a sentence, in the middle, and at the end — because your
+          pitch, rhythm, and phrasing all change depending on what comes next.
+          Isolated word recordings produce choppy, robotic output.
         </p>
         <p>
-          Because we know <em>exactly</em> what kinds of phrases an airport announcement
-          will contain, we can record just those phrases and combine them to make new
-          announcements. This is much simpler than building a general-purpose voice that
-          can say <em>anything</em>, and it is how early automated announcement systems
-          (train stations, airports, telephone services) were built.
-        </p>
-        <p>
-          The underlying technique is called <strong>unit selection synthesis</strong>:
-          the computer picks ("selects") the right recorded "units" (short phrases) and
-          joins them together to produce new speech.
+          By recording complete, natural sentences and then
+          <strong>extracting</strong> the individual phrase units afterwards,
+          we preserve that natural prosody even in the extracted units.
+          This is the approach used by real airport TTS systems.
         </p>
       </div>
 
       <div class="explanation">
-        <h3>How does this tool work?</h3>
-        <ol>
-          <li>
-            <strong>The Corpus (Step 2):</strong> You will see the complete list of
-            phrases you need to record. These phrases are called the
-            <em>corpus</em> — the raw material of your voice database.
-          </li>
-          <li>
-            <strong>Recording (Step 3):</strong> You record yourself saying each phrase.
-            Your browser microphone is used; no special equipment is needed.
-          </li>
-          <li>
-            <strong>Voice Database (Step 4):</strong> Your recordings are organised into
-            a <em>voice database</em> — a searchable library of speech units.
-          </li>
-          <li>
-            <strong>Synthesis (Step 5):</strong> You type any airport announcement and
-            the system picks the right units from your database, joins them together,
-            and plays the result back in your voice.
-          </li>
-        </ol>
+        <h3>How does the extraction work?</h3>
+        <p>
+          After you record each sentence, the system runs a process called
+          <strong>Voice Activity Detection (VAD)</strong>: it measures the
+          energy (loudness) of the audio moment by moment and finds the
+          natural pauses between phrases.  Those pause points become the
+          boundaries between phrase units.
+        </p>
+        <p>
+          If the automatic detection is not confident (because the room was
+          noisy or speech was very fast), the system falls back to splitting
+          the audio <strong>proportionally</strong> based on how long each
+          phrase is in the text.  Professional tools instead use
+          <em>forced alignment</em> — software that compares a phoneme-level
+          model of the sentence against the audio to find exact boundaries —
+          but that requires a server.  Our browser-based approach is simpler
+          and good enough for learning.
+        </p>
       </div>
 
-      <div class="overview-steps" aria-label="Overview of the four steps">
+      <div class="overview-steps" aria-label="Overview of the four main steps">
         <div class="overview-step-card">
           <span class="step-icon" aria-hidden="true">📝</span>
           <h3>1 · The Corpus</h3>
-          <p>See what phrases you need to record and why.</p>
+          <p>See the 15 sentences you will record and why they were chosen.</p>
         </div>
         <div class="overview-step-card">
           <span class="step-icon" aria-hidden="true">🎙</span>
           <h3>2 · Record</h3>
-          <p>Record yourself saying each phrase, one at a time.</p>
+          <p>Say each sentence naturally into your microphone.</p>
         </div>
         <div class="overview-step-card">
           <span class="step-icon" aria-hidden="true">🗃️</span>
           <h3>3 · Voice Database</h3>
-          <p>See your personal voice database take shape.</p>
+          <p>See all your recordings organised into a searchable library.</p>
         </div>
         <div class="overview-step-card">
           <span class="step-icon" aria-hidden="true">🔊</span>
           <h3>4 · Synthesize</h3>
-          <p>Type a new announcement and hear it in your voice!</p>
+          <p>Type a new announcement — hear it in your voice!</p>
         </div>
       </div>
 
       <div class="info-box info-box--tip">
         <strong>⏱ How long will this take?</strong>
-        Recording all 42 phrases takes about 10–15 minutes. You can also record just
-        the phrases marked "Needed for examples" (around 8 phrases) to try a quick
-        demo in under 5 minutes.
+        Recording all 15 sentences takes about 5–10 minutes.  You can start
+        with just a few sentences to try a quick demo, then record the rest.
       </div>
 
       <div class="info-box info-box--note">
         <strong>🔒 Privacy note</strong>
-        Your recordings are stored only in your browser's private storage (IndexedDB).
-        Nothing is uploaded to any server.
+        All recordings are stored only in your browser's local storage
+        (IndexedDB).  Nothing is uploaded to any server.
       </div>
 
       <div class="step-nav-row">
         <button class="btn btn-secondary btn-prev-step" disabled
-                aria-label="Go to previous step">
-          ← Previous
-        </button>
+                aria-label="Go to previous step">← Previous</button>
         <button class="btn btn-primary btn-next-step"
-                aria-label="Go to Step 2: The Corpus">
-          Let's start → The Corpus
+                aria-label="Go to The Corpus">
+          Next → The Corpus
         </button>
       </div>
 
@@ -172,190 +156,137 @@
 
     <!-- ══════════════════════════════════════════════════════════════
          STEP 1 – THE CORPUS
-         ══════════════════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════════ -->
     <section id="step-1" class="step-panel" hidden aria-labelledby="step-1-heading">
 
       <h2 id="step-1-heading" class="step-heading">Step 1 · The Recording Script (Corpus)</h2>
       <p class="step-subtitle">
-        Before recording a single word, speech engineers design exactly what to record.
-        This plan is called the <strong>corpus</strong>.
+        Before recording anything, professional voice engineers design a
+        carefully chosen set of sentences — the <strong>corpus</strong>.
       </p>
 
       <div class="explanation">
         <h3>What is a corpus?</h3>
         <p>
-          A <strong>corpus</strong> (plural: <em>corpora</em>) is a carefully chosen
-          collection of sentences or phrases that a voice actor records. Think of it like
-          a script for a play — except instead of performing it once, the recordings
-          become a permanent library that the computer uses to build new speech.
+          A <strong>corpus</strong> is the complete set of sentences a voice
+          actor records for a speech synthesis system.  Every word, phrase,
+          and sound that might ever appear in a new announcement must be
+          present somewhere in the corpus.  If a word was never recorded, the
+          synthesizer cannot say it.
         </p>
         <p>
-          The key challenge for the corpus designer is <em>coverage</em>: making sure
-          every word or phrase that might ever appear in a new announcement is already in
-          the database. If the user later types a city that was never recorded, the
-          system will not be able to say it.
+          Good corpus design means choosing the <em>smallest possible set</em>
+          of sentences that still <em>covers every required unit</em>.  Adding
+          unnecessary sentences wastes recording time and storage; missing a
+          single phrase makes the synthesizer fall silent for that word.
         </p>
       </div>
 
       <div class="explanation">
-        <h3>How was this corpus designed?</h3>
+        <h3>How is each sentence split into phrase units?</h3>
         <p>
-          Our corpus is organised into <strong>speech units</strong> — short phrases,
-          each covering a specific part of an airport announcement:
+          Each sentence in our corpus has been pre-annotated with the list of
+          <strong>phrase units</strong> it contains — for example,
+          &ldquo;Attention all passengers, flight one zero one to New York is
+          now boarding at gate five.&rdquo; contains the units:
         </p>
-        <ul>
-          <li><strong>Opening phrases</strong> — how to start an announcement</li>
-          <li><strong>Flight numbers</strong> — spoken digit-by-digit (aviation style)</li>
-          <li><strong>Destinations</strong> — one phrase per city</li>
-          <li><strong>Flight status</strong> — boarding, delayed, cancelled, etc.</li>
-          <li><strong>Gate numbers</strong> — one phrase per gate</li>
-          <li><strong>Delay durations</strong> — 30 minutes, 1 hour, etc.</li>
-          <li><strong>Instructions</strong> — directions for passengers</li>
-          <li><strong>Closing phrases</strong> — polite endings</li>
+        <ul style="margin:0.5rem 0 0.5rem 1.5rem">
+          <li>&ldquo;Attention all passengers&rdquo;</li>
+          <li>&ldquo;flight one zero one&rdquo;</li>
+          <li>&ldquo;to New York&rdquo;</li>
+          <li>&ldquo;is now boarding&rdquo;</li>
+          <li>&ldquo;at gate five&rdquo;</li>
         </ul>
         <p>
-          When the system synthesizes a new announcement, it simply picks the right unit
-          from each category and plays them one after another.  This is the essence of
-          <strong>unit selection synthesis</strong>.
+          When you record the sentence, the system uses silence detection
+          (VAD) to find the pauses between these phrases and cut the audio at
+          those points — no server needed.
+        </p>
+      </div>
+
+      <div class="explanation">
+        <h3>What does a professional system do differently?</h3>
+        <p>
+          Tools like
+          <a href="http://festvox.org/festvox-1.2/festvox_10.html"
+             target="_blank" rel="noopener noreferrer">FestVox</a>
+          use <strong>forced alignment</strong>: a Hidden Markov Model is
+          trained on the language, then run against the audio to find the
+          exact start and end time of every individual <em>phoneme</em>
+          (speech sound).  This gives boundaries accurate to a few
+          milliseconds.  Our browser-based silence detector is less precise
+          (~100–200 ms accuracy), but the concept is the same.
         </p>
       </div>
 
       <div class="info-box info-box--tip">
-        <strong>💡 Why say flight numbers digit by digit?</strong>
-        In real aviation, flight numbers are always spoken as individual digits — for
-        example, "Flight <em>one zero one</em>" rather than "Flight <em>one hundred and
-        one</em>". This removes any ambiguity about whether "101" means one-oh-one or
-        a hundred-and-one.
+        <strong>💡 Aviation digit-by-digit convention</strong>
+        Flight numbers are spoken as individual digits ("one zero one",
+        not "one hundred and one") to remove ambiguity.  When you type
+        "Flight 101" in the synthesis step, the system automatically expands
+        it to "flight one zero one" before matching.
       </div>
 
-      <!-- Corpus preview table (built from CORPUS data) -->
-      <h3 style="font-size:1.2rem;font-weight:700;margin:1.5rem 0 0.75rem;color:var(--color-primary-dark)">
-        All phrases you will record
+      <!-- Sentence list – static preview matching CORPUS -->
+      <h3 style="font-size:1.1rem;font-weight:700;margin:1.5rem 0 0.75rem;color:var(--color-primary-dark)">
+        The 15 sentences you will record
       </h3>
 
-      <div class="corpus-preview" aria-label="Full list of corpus units by category">
+      <div class="corpus-preview" aria-label="All corpus sentences">
 
         <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">📣</span> Opening Phrases</h4>
-          <ul class="corpus-unit-list" aria-label="Opening phrases">
-            <li class="corpus-unit-pill">"Attention"</li>
-            <li class="corpus-unit-pill">"Attention all passengers"</li>
-            <li class="corpus-unit-pill">"Ladies and gentlemen"</li>
-          </ul>
+          <h4><span aria-hidden="true">✈️</span> Boarding Announcements</h4>
+          <ol class="corpus-sentence-list">
+            <li>"Attention all passengers, flight one zero one to New York is now boarding at gate five."</li>
+            <li>"Attention all passengers, flight two zero two to Los Angeles is now boarding at gate three."</li>
+            <li>"Attention all passengers, flight three zero three to Chicago is now boarding at gate seven."</li>
+            <li>"Ladies and gentlemen, flight four zero four to Miami is now boarding. Please have your boarding pass ready."</li>
+            <li>"Attention all passengers, flight five zero five to Dallas is now boarding at gate ten."</li>
+            <li>"Attention all passengers, flight four zero four to Boston is now boarding at gate eight."</li>
+          </ol>
         </div>
 
         <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">✈️</span> Flight Numbers</h4>
-          <ul class="corpus-unit-list" aria-label="Flight number phrases">
-            <li class="corpus-unit-pill">"Flight one zero one" (101)</li>
-            <li class="corpus-unit-pill">"Flight two zero two" (202)</li>
-            <li class="corpus-unit-pill">"Flight three zero three" (303)</li>
-            <li class="corpus-unit-pill">"Flight four zero four" (404)</li>
-            <li class="corpus-unit-pill">"Flight five zero five" (505)</li>
-          </ul>
+          <h4><span aria-hidden="true">⏱️</span> Delay Announcements</h4>
+          <ol class="corpus-sentence-list">
+            <li>"Attention all passengers, flight one zero one to New York has been delayed by thirty minutes. Thank you for your patience."</li>
+            <li>"Ladies and gentlemen, flight two zero two to Los Angeles has been delayed by one hour. We apologize for the inconvenience."</li>
+            <li>"Attention all passengers, flight three zero three to Chicago has been delayed by two hours. We apologize for the inconvenience."</li>
+            <li>"Attention all passengers, flight five zero five to Denver has been delayed by thirty minutes. Thank you for your patience."</li>
+          </ol>
         </div>
 
         <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">🗺️</span> Destinations</h4>
-          <ul class="corpus-unit-list" aria-label="Destination phrases">
-            <li class="corpus-unit-pill">"to New York"</li>
-            <li class="corpus-unit-pill">"to Los Angeles"</li>
-            <li class="corpus-unit-pill">"to Chicago"</li>
-            <li class="corpus-unit-pill">"to Miami"</li>
-            <li class="corpus-unit-pill">"to Dallas"</li>
-            <li class="corpus-unit-pill">"to Seattle"</li>
-            <li class="corpus-unit-pill">"to Boston"</li>
-            <li class="corpus-unit-pill">"to Denver"</li>
-          </ul>
+          <h4><span aria-hidden="true">❌</span> Cancellations</h4>
+          <ol class="corpus-sentence-list">
+            <li>"Attention all passengers, flight four zero four to Miami has been cancelled. We apologize for the inconvenience."</li>
+          </ol>
         </div>
 
         <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">📋</span> Flight Status</h4>
-          <ul class="corpus-unit-list" aria-label="Flight status phrases">
-            <li class="corpus-unit-pill">"is now boarding"</li>
-            <li class="corpus-unit-pill">"is now departing"</li>
-            <li class="corpus-unit-pill">"has been delayed"</li>
-            <li class="corpus-unit-pill">"has been cancelled"</li>
-            <li class="corpus-unit-pill">"will depart on time"</li>
-            <li class="corpus-unit-pill">"is on final boarding call"</li>
-          </ul>
+          <h4><span aria-hidden="true">🔔</span> Final Boarding Calls</h4>
+          <ol class="corpus-sentence-list">
+            <li>"This is the final boarding call for flight five zero five to Dallas at gate ten. Please proceed to the gate immediately."</li>
+            <li>"Ladies and gentlemen, flight one zero one to New York is on final boarding call at gate five."</li>
+          </ol>
         </div>
 
         <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">🚪</span> Gate Numbers</h4>
-          <ul class="corpus-unit-list" aria-label="Gate number phrases">
-            <li class="corpus-unit-pill">"at gate one"</li>
-            <li class="corpus-unit-pill">"at gate two"</li>
-            <li class="corpus-unit-pill">"at gate three"</li>
-            <li class="corpus-unit-pill">"at gate four"</li>
-            <li class="corpus-unit-pill">"at gate five"</li>
-            <li class="corpus-unit-pill">"at gate six"</li>
-            <li class="corpus-unit-pill">"at gate seven"</li>
-            <li class="corpus-unit-pill">"at gate eight"</li>
-            <li class="corpus-unit-pill">"at gate nine"</li>
-            <li class="corpus-unit-pill">"at gate ten"</li>
-          </ul>
+          <h4><span aria-hidden="true">🛫</span> Departure / On-time</h4>
+          <ol class="corpus-sentence-list">
+            <li>"Attention all passengers, flight two zero two to Los Angeles is now departing from gate three. Have a pleasant flight."</li>
+            <li>"Attention all passengers, flight three zero three to Seattle will depart on time from gate seven."</li>
+          </ol>
         </div>
 
-        <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">⏱️</span> Delay Durations</h4>
-          <ul class="corpus-unit-list" aria-label="Delay duration phrases">
-            <li class="corpus-unit-pill">"by thirty minutes"</li>
-            <li class="corpus-unit-pill">"by one hour"</li>
-            <li class="corpus-unit-pill">"by two hours"</li>
-          </ul>
-        </div>
-
-        <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">📢</span> Passenger Instructions</h4>
-          <ul class="corpus-unit-list" aria-label="Instruction phrases">
-            <li class="corpus-unit-pill">"please proceed to the gate"</li>
-            <li class="corpus-unit-pill">"this is the final boarding call"</li>
-            <li class="corpus-unit-pill">"please have your boarding pass ready"</li>
-          </ul>
-        </div>
-
-        <div class="corpus-category-preview">
-          <h4><span aria-hidden="true">🙏</span> Closing Phrases</h4>
-          <ul class="corpus-unit-list" aria-label="Closing phrases">
-            <li class="corpus-unit-pill">"thank you for your patience"</li>
-            <li class="corpus-unit-pill">"we apologize for the inconvenience"</li>
-            <li class="corpus-unit-pill">"thank you for flying with us"</li>
-            <li class="corpus-unit-pill">"have a pleasant flight"</li>
-          </ul>
-        </div>
-
-      </div><!-- .corpus-preview -->
-
-      <div class="explanation">
-        <h3>What happens in a professional system?</h3>
-        <p>
-          In a professional voice-building workflow (such as the one described in the
-          <a href="http://festvox.org/festvox-1.2/festvox_10.html"
-             target="_blank" rel="noopener noreferrer">
-            FestVox documentation</a>),
-          the corpus is carefully chosen to cover all the required
-          <em>phones</em> (individual speech sounds) in all the contexts in which they
-          can appear. The recording is done in a sound-proof studio, and special software
-          then automatically aligns the transcript to the audio to find the precise start
-          and end time of every phone.
-        </p>
-        <p>
-          Our system is simpler: instead of individual phones we use whole phrases as
-          units, and instead of automatic alignment we use your natural phrase recordings
-          directly.  This makes the quality lower (you may hear small "jumps" at the
-          joins) but makes the process easy to understand and try out.
-        </p>
       </div>
 
       <div class="step-nav-row">
         <button class="btn btn-secondary btn-prev-step"
-                aria-label="Go back to Introduction">
-          ← Introduction
-        </button>
+                aria-label="Go back to Introduction">← Introduction</button>
         <button class="btn btn-primary btn-next-step"
                 aria-label="Go to Record Your Voice">
-          Start recording → Step 3
+          Next → Record
         </button>
       </div>
 
@@ -363,78 +294,75 @@
 
     <!-- ══════════════════════════════════════════════════════════════
          STEP 2 – RECORD
-         ══════════════════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════════ -->
     <section id="step-2" class="step-panel" hidden aria-labelledby="step-2-heading">
 
       <h2 id="step-2-heading" class="step-heading">Step 2 · Record Your Voice</h2>
       <p class="step-subtitle">
-        Record yourself saying each phrase below. Your recordings become the
-        building blocks of your personal computer voice.
+        Say each <strong>complete sentence</strong> naturally — as if you were
+        a real airport announcer.  The system will automatically extract the
+        individual phrase units from your recording.
       </p>
 
       <div class="explanation">
-        <h3>How does recording work?</h3>
+        <h3>What happens after you record?</h3>
         <p>
-          When you click <strong>Record</strong>, your browser will ask permission to use
-          your microphone (if it hasn't already). Say the phrase shown, then click
-          <strong>Stop</strong>. You can play back the recording immediately and re-record
-          if you are not happy with it.
+          When you click <strong>Stop</strong>, your recording is saved and
+          the system runs <strong>Voice Activity Detection</strong> in the
+          background: it finds the energy level in short 20-millisecond
+          windows and looks for pauses (silence) longer than 80 ms.  Each
+          long pause becomes the boundary between two phrase units.
         </p>
         <p>
-          In professional speech synthesis, recordings are made in a quiet studio with a
-          high-quality microphone to minimise background noise.  For this exercise, any
-          quiet room and a standard laptop or phone microphone will work fine.
+          You can click <strong>Play back</strong> to hear your recording.
+          If it sounds wrong — you stumbled, there was background noise, or
+          you paused in the wrong place — just click <strong>Re-record</strong>.
         </p>
       </div>
 
       <div class="info-box info-box--tip">
         <strong>🎙 Tips for good recordings</strong>
         <ul style="padding-left:1.25rem;margin-top:0.4rem">
-          <li>Find a quiet room and reduce background noise (fans, traffic, etc.).</li>
-          <li>Speak clearly and at a natural pace — as if making a real announcement.</li>
-          <li>Keep a consistent distance from the microphone (about 20–30 cm).</li>
-          <li>Speak each phrase naturally, including brief silence before and after.</li>
-          <li>If you stumble, just stop and re-record — it takes only a moment.</li>
+          <li>Find a quiet room with no fans, traffic, or air conditioning.</li>
+          <li>Speak clearly at a natural, steady pace — not too slow.</li>
+          <li>Keep your mouth about 20–30 cm from the microphone.</li>
+          <li>Say the <strong>whole sentence</strong> in one continuous recording.</li>
+          <li>Leave a brief natural pause at each comma — this helps the silence detector.</li>
         </ul>
       </div>
 
       <div class="info-box info-box--note">
-        <strong>⭐ Where to start</strong>
-        Phrases marked <em>"Needed for examples"</em> are the minimum set required to
-        try the built-in example announcements in Step 5. Record those first if you want
-        a quick result, then come back to record the rest.
+        <strong>⭐ Where to start?</strong>
+        Record the first sentence (Boarding — Flight 101 to New York) to get
+        started immediately.  Even one recorded sentence lets you try the
+        synthesis step with the Boarding example.
       </div>
 
       <!-- Progress bar -->
       <div class="progress-container" aria-label="Recording progress">
-        <p class="progress-label" id="progress-label">
-          0 of 42 phrases recorded (0%)
-        </p>
+        <p class="progress-label" id="progress-label">0 of 15 sentences recorded (0%)</p>
         <div class="progress-track"
              id="progress-bar"
              role="progressbar"
              aria-valuemin="0"
-             aria-valuemax="42"
+             aria-valuemax="15"
              aria-valuenow="0"
-             aria-valuetext="0 of 42 phrases recorded"
+             aria-valuetext="0 of 15 sentences recorded"
              aria-label="Recording progress">
           <div id="progress-fill"></div>
         </div>
       </div>
 
-      <!-- Unit cards — injected by app.js -->
-      <div id="recording-units-wrapper" aria-label="Recording units by category">
-        <!-- Built dynamically by app.js -->
+      <!-- Sentence cards injected by app.js -->
+      <div id="recording-sentences-wrapper" aria-label="Sentences to record, by category">
       </div>
 
       <div class="step-nav-row">
         <button class="btn btn-secondary btn-prev-step"
-                aria-label="Go back to The Corpus">
-          ← The Corpus
-        </button>
+                aria-label="Go back to The Corpus">← The Corpus</button>
         <button class="btn btn-primary btn-next-step"
-                aria-label="Go to Your Voice Database">
-          View database → Step 4
+                aria-label="Go to Voice Database">
+          Next → Voice Database
         </button>
       </div>
 
@@ -442,46 +370,31 @@
 
     <!-- ══════════════════════════════════════════════════════════════
          STEP 3 – VOICE DATABASE
-         ══════════════════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════════ -->
     <section id="step-3" class="step-panel" hidden aria-labelledby="step-3-heading">
 
       <h2 id="step-3-heading" class="step-heading">Step 3 · Your Voice Database</h2>
       <p class="step-subtitle">
-        Your recordings are now organised into a <strong>voice database</strong> —
-        a searchable library of speech units.
+        Your recordings form a <strong>voice database</strong> — the library
+        the synthesizer will search when building new announcements.
       </p>
 
       <div class="explanation">
-        <h3>What is a voice database?</h3>
+        <h3>What is stored?</h3>
         <p>
-          A <strong>voice database</strong> (sometimes called a <em>speech corpus</em>
-          or <em>unit inventory</em>) is the set of all the recorded speech units
-          available for synthesis.  Think of it like a well-organised filing cabinet:
-          each drawer is a category (opening phrases, flight numbers, destinations, …)
-          and each folder inside holds one recording.
+          For each sentence you recorded, the database stores the full audio
+          and the pre-defined phrase unit boundaries.  During synthesis, when
+          the system needs, say, "to new york", it finds the sentence that
+          contains the unit <code>dest-newyork</code>, loads the audio, and
+          uses the Segmenter to extract just that slice.
         </p>
         <p>
-          When the synthesis system needs to say something, it opens the right drawer,
-          picks the right folder, and plays the recording.
-        </p>
-      </div>
-
-      <div class="explanation">
-        <h3>What does a professional voice database look like?</h3>
-        <p>
-          In a full unit-selection system (like Festival, MaryTTS, or the systems
-          described in the
-          <a href="http://festvox.org/festvox-1.2/festvox_10.html"
-             target="_blank" rel="noopener noreferrer">FestVox guide</a>),
-          the database stores audio at the level of individual <em>phones</em>
-          (the smallest speech sounds, such as the sounds in "cat": /k/, /æ/, /t/).
-          Each phone may have many different recordings taken from different
-          positions in words, giving the selection algorithm more choices and
-          allowing smoother joins between units.
-        </p>
-        <p>
-          Our database stores whole phrases.  This is simpler, and for a limited
-          domain (airport announcements) it works surprisingly well.
+          In a production system this library would instead store
+          <strong>individual phoneme recordings</strong>, each tagged with
+          acoustic features (fundamental frequency, spectral envelope,
+          duration) so the selection algorithm can minimise the acoustic
+          discontinuity at every join.  Our phrase-level approach is simpler
+          but teaches the same concept.
         </p>
       </div>
 
@@ -491,27 +404,24 @@
 
       <div class="database-grid-container">
         <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:0.75rem;color:var(--color-primary-dark)">
-          All units in your database
+          All sentences in your database
         </h3>
-        <div id="database-grid" role="list" aria-label="Voice database units">
-          <!-- Built dynamically by app.js -->
-        </div>
+        <div id="database-grid" role="list" aria-label="Recorded sentences"></div>
       </div>
 
       <div class="info-box info-box--tip" style="margin-top:1.5rem">
         <strong>🔙 Need to record more?</strong>
-        You can go back to Step 3 at any time to record additional phrases.  The
-        more phrases you record, the wider the range of announcements you can synthesize.
+        You can return to Step 2 at any time to add more sentences.
+        More recordings = wider vocabulary for new announcements.
       </div>
 
-      <!-- Reset area -->
       <div class="reset-area">
         <h3>Start over</h3>
         <p style="font-size:0.875rem;color:var(--color-text-muted);margin-bottom:0.5rem">
-          If you want to re-record everything from scratch, you can delete all your
-          recordings below.
+          Delete all your recordings to begin again from scratch.
         </p>
-        <button id="btn-reset-all" aria-label="Delete all recordings and start over">
+        <button id="btn-reset-all"
+                aria-label="Delete all recordings and start over">
           Delete all recordings
         </button>
         <p id="reset-feedback" hidden role="status" aria-live="polite"></p>
@@ -519,12 +429,10 @@
 
       <div class="step-nav-row">
         <button class="btn btn-secondary btn-prev-step"
-                aria-label="Go back to Record">
-          ← Record more
-        </button>
+                aria-label="Go back to Record">← Record more</button>
         <button class="btn btn-primary btn-next-step"
-                aria-label="Go to Synthesize Announcements">
-          Try synthesis → Step 5
+                aria-label="Go to Synthesize">
+          Next → Synthesize
         </button>
       </div>
 
@@ -532,87 +440,79 @@
 
     <!-- ══════════════════════════════════════════════════════════════
          STEP 4 – SYNTHESIZE
-         ══════════════════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════════ -->
     <section id="step-4" class="step-panel" hidden aria-labelledby="step-4-heading">
 
       <h2 id="step-4-heading" class="step-heading">Step 4 · Synthesize a New Announcement</h2>
       <p class="step-subtitle">
-        Type any airport announcement below and hear it played back in your own voice.
+        Type any airport announcement and hear it played back in
+        <strong>your own voice</strong>.
       </p>
 
       <div class="explanation">
-        <h3>How does unit selection synthesis work?</h3>
-        <p>
-          When you click <strong>Synthesize</strong>, the system runs through these steps:
-        </p>
+        <h3>What happens when you click Synthesize?</h3>
         <ol>
           <li>
-            <strong>Text normalisation:</strong> Your text is converted to lower case,
-            numbers are expanded to words (e.g. "101" → "one zero one", "gate 5" →
-            "gate five"), and punctuation is removed.
+            <strong>Text normalisation:</strong> Your text is lower-cased,
+            numbers are expanded ("101" → "one zero one", "gate 5" → "gate five"),
+            and punctuation is removed.
           </li>
           <li>
-            <strong>Unit selection:</strong> The system scans your text from left to
-            right, always trying to match the <em>longest</em> phrase it can find in the
-            voice database (this is called <em>greedy longest-match</em>). For example,
-            it will prefer "attention all passengers" over just "attention".
+            <strong>Unit selection (greedy longest-match):</strong> The system
+            scans your text from left to right.  At each position it tries to
+            match the <em>longest</em> phrase unit that exists in your database.
+            For example, it prefers "attention all passengers" over just
+            "attention".
           </li>
           <li>
-            <strong>Audio loading:</strong> The recordings for the selected units are
-            loaded from your browser's storage.
+            <strong>Segment extraction:</strong> For each selected unit, the
+            Segmenter loads the sentence recording that contains it and cuts
+            out the phrase slice using the pre-computed boundaries.
           </li>
           <li>
-            <strong>Concatenation:</strong> The audio clips are joined end-to-end with a
-            short silence gap between each unit.
+            <strong>Concatenation:</strong> The extracted audio slices are
+            joined end-to-end with an 80 ms silence gap between each one.
           </li>
           <li>
-            <strong>Playback:</strong> The combined audio is played through your speakers.
+            <strong>Playback:</strong> The combined audio — in your voice — is
+            played through your speakers.
           </li>
         </ol>
         <p>
-          The visualisation below the synthesize button shows exactly which units were
-          selected (in blue) and which words could not be matched because they were never
-          recorded (in red).
+          The visualisation below the Synthesize button shows every phrase unit
+          that was selected (in blue) and any words the system could not find
+          in your database (in red — those words are silently skipped).
         </p>
       </div>
 
       <div class="explanation">
-        <h3>How does a professional system handle joins?</h3>
+        <h3>Why might joins sound unnatural?</h3>
         <p>
-          In our simple system the joins between units can sometimes sound a little
-          abrupt or unnatural.  A professional unit-selection synthesizer such as
-          Festival or a modern concatenative TTS engine improves this by:
+          Two phrases recorded in different sentences were spoken in different
+          prosodic contexts — different pitch, different speed, different
+          volume at the end.  When joined back-to-back these mismatches are
+          audible.
         </p>
-        <ul>
-          <li>
-            Storing many alternative recordings of each unit (from different positions
-            in longer sentences) and choosing the pair of adjacent units that join most
-            smoothly.
-          </li>
-          <li>
-            Using a <em>join cost function</em> — a mathematical measure of how well
-            two units connect — to guide the selection.
-          </li>
-          <li>
-            Applying <em>signal processing</em> at the join points to smooth the
-            transition.
-          </li>
-        </ul>
         <p>
-          In our simplified system we use a single recording per unit and just place an
-          80-millisecond gap between them.  You will often be able to hear where each
-          unit ends and the next begins — which actually makes the underlying mechanism
-          very clear!
+          A production concatenative synthesizer minimises this with a
+          <strong>join cost function</strong>: it picks the pair of candidate
+          units that is acoustically <em>most similar at the join point</em>
+          (same fundamental frequency and spectral shape), then applies
+          <em>PSOLA</em> signal processing to smooth the transition.  Our
+          system just places an 80 ms gap — which actually makes the mechanism
+          very transparent for learning!
         </p>
       </div>
 
       <!-- Example buttons -->
       <div class="example-buttons-container">
-        <p id="example-buttons-label" style="font-size:0.875rem;font-weight:700;color:var(--color-text-muted);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em">
+        <p id="example-buttons-label"
+           style="font-size:0.875rem;font-weight:700;color:var(--color-text-muted);
+                  margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em">
           Try an example:
         </p>
-        <div id="example-buttons" role="group" aria-labelledby="example-buttons-label">
-          <!-- Built dynamically by app.js -->
+        <div id="example-buttons"
+             role="group" aria-labelledby="example-buttons-label">
         </div>
       </div>
 
@@ -621,18 +521,13 @@
         <label class="synthesis-label" for="synthesis-input">
           Type your announcement:
         </label>
-        <div class="synthesis-textarea-wrap">
-          <textarea
-            id="synthesis-input"
-            rows="4"
-            placeholder="For example: Attention all passengers. Flight 101 to New York is now boarding at gate 5."
-            aria-describedby="synthesis-hint char-count"
-          ></textarea>
-        </div>
+        <textarea id="synthesis-input"
+                  rows="4"
+                  placeholder="For example: Attention all passengers, flight one zero one to New York is now boarding at gate five."
+                  aria-describedby="synthesis-hint char-count"></textarea>
         <p id="synthesis-hint" class="info-box info-box--tip" style="margin-top:0.5rem">
-          <strong>💡 Tip:</strong> Use the phrases you recorded. You can write
-          "Flight 101" and the system will automatically expand it to
-          "flight one zero one" before matching.
+          <strong>💡 Tip:</strong> You can write "Flight 101" or "gate 5" and
+          the system will expand them to words automatically.
         </p>
         <p class="char-count" aria-live="polite">
           <span id="char-count">0 characters</span>
@@ -647,57 +542,54 @@
             <span aria-hidden="true">⏹</span> Stop
           </button>
         </div>
-        <div id="synthesis-status" class="synthesis-status" role="status"
-             aria-live="polite" hidden></div>
+        <div id="synthesis-status" class="synthesis-status"
+             role="status" aria-live="polite" hidden></div>
       </div>
 
-      <!-- Visualisation — shown after synthesis -->
+      <!-- Visualisation -->
       <div id="synthesis-visualization" hidden aria-labelledby="viz-heading">
         <h3 id="viz-heading">How your announcement was built:</h3>
         <p class="synthesis-viz-desc">
-          <span style="background:var(--color-match-chip);color:var(--color-match-chip-text);padding:0.1rem 0.4rem;border-radius:4px;font-weight:700">Blue</span>
-          = a recorded unit was used.
-          <span style="background:var(--color-unmatched-chip);color:var(--color-unmatched-chip-text);padding:0.1rem 0.4rem;border-radius:4px;font-weight:700">Red</span>
-          = no matching recording — this word was skipped.
+          <span style="background:var(--color-match-chip);color:var(--color-match-chip-text);
+                       padding:0.1rem 0.4rem;border-radius:4px;font-weight:700">Blue</span>
+          = phrase found in a recording and used.
+          <span style="background:var(--color-unmatched-chip);color:var(--color-unmatched-chip-text);
+                       padding:0.1rem 0.4rem;border-radius:4px;font-weight:700">Red</span>
+          = word not found — skipped.
         </p>
-        <div id="synthesis-chips" role="list" aria-label="Units used in synthesis">
-          <!-- Built dynamically by app.js -->
+        <div id="synthesis-chips"
+             role="list" aria-label="Phrase units used in synthesis">
         </div>
       </div>
 
       <div class="step-nav-row">
         <button class="btn btn-secondary btn-prev-step"
-                aria-label="Go back to Voice Database">
-          ← Voice Database
-        </button>
+                aria-label="Go back to Voice Database">← Voice Database</button>
         <button class="btn btn-secondary btn-next-step" disabled
-                aria-label="You are on the last step">
-          — End —
-        </button>
+                aria-label="You are on the last step">— End —</button>
       </div>
 
     </section>
 
   </main>
 
-  <!-- ── Footer ─────────────────────────────────────────────────────── -->
   <footer class="site-footer" role="contentinfo">
     <p>
-      Airport Announcement Voice Builder · Built for learning limited-domain speech
-      synthesis. Inspired by the
+      Airport Announcement Voice Builder · Teaches limited-domain speech
+      synthesis via unit selection. Inspired by the
       <a href="http://festvox.org/festvox-1.2/festvox_10.html"
-         target="_blank" rel="noopener noreferrer">FestVox limited-domain TTS guide</a>.
+         target="_blank" rel="noopener noreferrer">FestVox guide</a>.
     </p>
     <p>
-      All audio is stored locally in your browser and is never uploaded.
+      All audio is stored locally in your browser — nothing is uploaded.
       Works in Chrome, Firefox, Edge, and Safari 14+.
     </p>
   </footer>
 
-  <!-- ── JavaScript ─────────────────────────────────────────────────── -->
   <script src="js/corpus.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/recorder.js"></script>
+  <script src="js/segmenter.js"></script>
   <script src="js/synthesizer.js"></script>
   <script src="js/app.js"></script>
 
