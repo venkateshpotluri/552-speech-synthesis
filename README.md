@@ -20,7 +20,17 @@ git clone <this repo>
 open index.html
 ```
 
-Or visit the live GitHub Pages version (see repository settings).
+### Deploying to GitHub Pages
+
+The repository includes a GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) that automatically deploys the site on every push to `main`.
+
+To enable it:
+
+1. Go to **Settings → Pages** in your repository.
+2. Under *Build and deployment*, set **Source** to **GitHub Actions**.
+3. Push to `main` (or use *Actions → Deploy to GitHub Pages → Run workflow*).
+
+The live site will be available at `https://<owner>.github.io/<repo>/`.
 
 ## Technical details
 
@@ -34,6 +44,7 @@ Or visit the live GitHub Pages version (see repository settings).
 | `js/segmenter.js` | VAD-based audio segmentation with proportional fallback |
 | `js/synthesizer.js` | Unit selection algorithm + Web Audio API concatenation |
 | `js/app.js` | Main app controller (step navigation, recording UI, synthesis UI) |
+| `.github/workflows/deploy-pages.yml` | GitHub Actions workflow: deploys site to GitHub Pages on push to `main` |
 
 ### Synthesis algorithm
 
