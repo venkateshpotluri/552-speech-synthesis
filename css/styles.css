@@ -17,6 +17,15 @@
 
 /* ── Reset / base ─────────────────────────────────────────────────── */
 
+/*
+ * Ensure the HTML `hidden` attribute always hides elements, even when
+ * a CSS display property (e.g. `display: inline-flex` on `.btn`) would
+ * otherwise override the browser's built-in `display: none` for hidden.
+ */
+[hidden] {
+  display: none !important;
+}
+
 *,
 *::before,
 *::after {

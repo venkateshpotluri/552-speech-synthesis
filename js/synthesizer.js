@@ -215,7 +215,7 @@ class Synthesizer {
 
   /**
    * Concatenates multiple AudioBuffers into a single buffer, inserting
-   * a short silence gap (100 ms) between each unit to prevent abrupt
+   * a short silence gap (80 ms) between each unit to prevent abrupt
    * joins.  All buffers are mixed down to mono.
    *
    * @param {AudioBuffer[]} buffers
